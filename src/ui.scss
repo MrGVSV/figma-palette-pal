@@ -1,0 +1,137 @@
+$bd-color: #aaa5;
+
+@mixin draggable {
+	vertical-align: middle;
+	display: grid;
+	grid-auto-flow: column;
+	width: 90%;
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	font: 12px sans-serif;
+	text-align: center;
+	margin: 20px;
+}
+button {
+	background: transparent;
+	border: none;
+	outline: none;
+}
+input {
+	border: none;
+	outline: none;
+	padding: 8px;
+	font-weight: 500;
+	&:hover {
+		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+	}
+	&:focus {
+		box-shadow: inset 0 0 0 2px #18a0fb;
+	}
+}
+
+html,
+body {
+	width: 100%;
+	height: 100%;
+	padding: 0;
+	margin: 0;
+}
+
+.swatch-item {
+	display: none;
+	list-style: none;
+	background-color: blue;
+}
+
+.swatch-drag {
+	@include draggable();
+}
+
+@keyframes loadIn {
+	0% {
+		opacity: 0;
+	}
+	99% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 1;
+	}
+}
+
+.material-pal {
+	padding: 0;
+	margin: 0;
+	width: 100%;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	opacity: 0;
+	animation: loadIn 1ms 500ms forwards;
+
+	ul {
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		li {
+			@include draggable();
+		}
+	}
+}
+
+.swatch-name {
+	text-align: left;
+	font-weight: bold;
+	// float: left;
+	width: 100%;
+	background-color: transparent;
+	padding: 0.25em 0;
+
+	&:disabled {
+		filter: opacity(0.75);
+	}
+}
+
+.swatch-handle {
+	cursor: grab;
+	display: inline;
+	align-self: stretch;
+	margin: 0.25em;
+}
+
+.swatch {
+	width: 100%;
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 2px;
+	justify-content: center;
+	margin-bottom: 0.5em;
+
+	.swatch-color {
+		flex: 1;
+		cursor: pointer;
+	}
+
+	.swatch-control {
+		display: flex;
+
+		input {
+			width: 10ch;
+		}
+
+		.swatch-lock {
+			display: inline-block;
+			cursor: pointer;
+
+			&:hover {
+				filter: opacity(0.65);
+			}
+		}
+	}
+}
