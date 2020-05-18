@@ -1,13 +1,91 @@
 $bd-color: #aaa5;
+$load-time: 1s;
+$footer-height: 3em;
+
+
+//    __  __ _______   _______ _   _  _____ 
+//   |  \/  |_   _\ \ / /_   _| \ | |/ ____|
+//   | \  / | | |  \ V /  | | |  \| | (___  
+//   | |\/| | | |   > <   | | | . ` |\___ \ 
+//   | |  | |_| |_ / . \ _| |_| |\  |____) |
+//   |_|  |_|_____/_/ \_\_____|_| \_|_____/ 
+//                                          
+//                                          
 
 @mixin draggable {
 	vertical-align: middle;
 	display: grid;
 	grid-auto-flow: column;
-	width: 90%;
+	width: 100%;
 	margin: 0;
 	padding: 0;
 }
+
+@mixin btn {
+	cursor: pointer;
+	&:hover {
+		opacity: 0.65;
+	}
+}
+
+@mixin invert {
+	&.invert {
+		input {
+			color: white;
+			&:hover {
+				box-shadow: inset 0 0 0 1px #aaa7;
+			}
+		}
+		img {
+			filter: invert(100%);
+		}
+	}
+}
+
+//             _   _ _____ __  __       _______ _____ ____  _   _  _____ 
+//       /\   | \ | |_   _|  \/  |   /\|__   __|_   _/ __ \| \ | |/ ____|
+//      /  \  |  \| | | | | \  / |  /  \  | |    | || |  | |  \| | (___  
+//     / /\ \ | . ` | | | | |\/| | / /\ \ | |    | || |  | | . ` |\___ \ 
+//    / ____ \| |\  |_| |_| |  | |/ ____ \| |   _| || |__| | |\  |____) |
+//   /_/    \_\_| \_|_____|_|  |_/_/    \_\_|  |_____\____/|_| \_|_____/ 
+//                                                                       
+//                                                                       
+
+@keyframes loadIn {
+	0% {
+		opacity: 0;
+	}
+	99% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 1;
+	}
+}
+
+@keyframes bounceIn {
+	from {
+		transform: translateX(-100%);
+	}
+	to {
+		transform: translateX(0%);
+	}
+}
+
+@keyframes fadeOut {
+	to {
+		opacity: 0;
+	}
+}
+
+//    ____           _____ _____ _____ 
+//   |  _ \   /\    / ____|_   _/ ____|
+//   | |_) | /  \  | (___   | || |     
+//   |  _ < / /\ \  \___ \  | || |     
+//   | |_) / ____ \ ____) |_| || |____ 
+//   |____/_/    \_\_____/|_____\_____|
+//                                     
+//                                     
 
 body {
 	font: 12px sans-serif;
@@ -23,7 +101,8 @@ input {
 	border: none;
 	outline: none;
 	padding: 8px;
-	font-weight: 500;
+			background-color: transparent;
+			font-weight: 500;
 	&:hover {
 		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
 	}
@@ -40,29 +119,25 @@ body {
 	margin: 0;
 }
 
-.swatch-item {
-	display: none;
-	list-style: none;
-	background-color: blue;
-}
 
+//    _____  _     _    _  _____ _____ _   _ 
+//   |  __ \| |   | |  | |/ ____|_   _| \ | |
+//   | |__) | |   | |  | | |  __  | | |  \| |
+//   |  ___/| |   | |  | | | |_ | | | | . ` |
+//   | |    | |___| |__| | |__| |_| |_| |\  |
+//   |_|    |______\____/ \_____|_____|_| \_|
+//                                           
+//                                           
+
+// === Drag Helper === //
 .swatch-drag {
 	@include draggable();
+	@include invert();
+	cursor: grabbing;
 }
 
-@keyframes loadIn {
-	0% {
-		opacity: 0;
-	}
-	99% {
-		opacity: 1;
-	}
-	100% {
-		opacity: 1;
-	}
-}
-
-.material-pal {
+// === Plugin Root === //
+.palette-pal {
 	padding: 0;
 	margin: 0;
 	width: 100%;
@@ -71,25 +146,92 @@ body {
 	flex-direction: column;
 	align-items: center;
 	opacity: 0;
-	animation: loadIn 1ms 500ms forwards;
+	animation: loadIn 1ms $load-time forwards;
+	padding-bottom: calc(0.5em + #{$footer-height});
+	z-index: 1;
 
+	@include invert();
+
+	// === Copy Alert === //
+	.swatch-alert {
+		position: fixed;
+		opacity: 0.65;
+		top: 0;
+		left: 0;
+		pointer-events: none;
+		margin-top: 0.75em;
+		margin-left: 0.75em;
+		animation: fadeOut forwards;
+
+		div {
+			background-color: #ccca;
+			padding: 0.25em 0.5em;
+			border-radius: 5px;
+			font-size: 75%;
+
+			animation: bounceIn forwards cubic-bezier(0.215, 0.610, 0.355, 1);
+			animation-duration: 0.5s;
+		}
+	}
+
+	// === Plugin Controls === //
+	.controls {
+		display: flex;
+		justify-content: flex-end;
+		width: 90%;
+		margin-top: 0.5em;
+
+		.swatch-bg {
+			width: 10ch;
+		}
+
+		button {
+			@include btn();
+		}
+	}
+
+	// === List of Swatches === //
 	ul {
 		margin: 0;
 		padding: 0;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
+		width: 90%;
 		li {
 			@include draggable();
 		}
 	}
+
+	// === Footer === //
+	.footer {
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		background-color: #eee;
+		padding: 0 0.5em;
+		display: flex;
+		height: $footer-height;
+		z-index: 500;
+
+		justify-content: space-between;
+		align-items: center;
+		
+		a {
+			color: black;
+			text-decoration: none;
+			display: flex;
+			align-items: center;
+		}
+	}
 }
 
+// === Swatch Name === //
 .swatch-name {
 	text-align: left;
 	font-weight: bold;
-	// float: left;
-	width: 100%;
+	float: left;
 	background-color: transparent;
 	padding: 0.25em 0;
 
@@ -98,26 +240,43 @@ body {
 	}
 }
 
+// === Grabbable Swatch Handle === //
 .swatch-handle {
 	cursor: grab;
 	display: inline;
-	align-self: stretch;
-	margin: 0.25em;
+	align-self: flex-start;
+	margin: -0.15em 0.25em 0;
 }
 
+// === Trash Icon === //
+.swatch-trash {
+	cursor: default;
+	display: flex;
+	justify-content: center;
+}
+
+// === Swatch Container === //
 .swatch {
 	width: 100%;
 	display: grid;
 	grid-template-columns: repeat(4, 1fr);
 	gap: 2px;
 	justify-content: center;
-	margin-bottom: 0.5em;
+	margin-bottom: 0.75em;
+	cursor: pointer;
 
+	// === Swatch Colors === //
 	.swatch-color {
-		flex: 1;
 		cursor: pointer;
+		flex: 1;
+		position: relative;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		user-select: none;
 	}
 
+	// === Controls for Swatch === //
 	.swatch-control {
 		display: flex;
 
@@ -125,13 +284,9 @@ body {
 			width: 10ch;
 		}
 
-		.swatch-lock {
+		.swatch-picker, .swatch-lock {
 			display: inline-block;
-			cursor: pointer;
-
-			&:hover {
-				filter: opacity(0.65);
-			}
+			@include btn();
 		}
 	}
 }

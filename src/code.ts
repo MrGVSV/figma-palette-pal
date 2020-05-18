@@ -9,5 +9,13 @@ figma.ui.onmessage = msg => {
     figma.clientStorage.setAsync('swatches', msg.data);
   } else if(msg.type === 'get-swatches') {
     figma.clientStorage.getAsync('swatches').then(res => figma.ui.postMessage({type: 'get-swatches-res', data: res}));
+  } else if(msg.type === 'set-bg') {
+    figma.clientStorage.setAsync('bg', msg.data);
+  } else if(msg.type === 'get-bg') {
+    figma.clientStorage.getAsync('bg').then(res => figma.ui.postMessage({type: 'get-bg-res', data: res}));
+  } else if(msg.type === 'set-shift') {
+    figma.clientStorage.setAsync('shift', msg.data);
+  } else if(msg.type === 'get-shift') {
+    figma.clientStorage.getAsync('shift').then(res => figma.ui.postMessage({type: 'get-shift-res', data: res}));
   }
 }

@@ -1,33 +1,39 @@
 import * as React from "react";
 import "./ui.scss";
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
+import { ChromePicker } from "react-color";
+import { randomColor, makeHex, HEX_REGEX, darken, lighten } from "./Hex";
+import { get, post } from "./utils";
 
 declare function require(path: string): any;
-// Use: <img src={require('./logo.svg')} />
 
-var Color = require("color");
+// === Icons === //
 const LOCK_OPEN = require("./icons/lock-open.svg");
 const LOCK_CLOSE = require("./icons/lock.svg");
+const PALETTE = require("./icons/palette.svg");
 
+// === Swatch === //
 interface ISwatch extends React.HTMLAttributes<HTMLElement> {
 	swatch: string;
 	colorData: object;
 	shift?: number;
-	onRename?(newName: string, oldName: string): string
+	onRename?(newName: string, oldName: string): string;
+	onCopy?(): void;
 }
 export default function Swatch({
 	swatch,
 	colorData,
 	shift = 0.25,
-	onRename=()=>''
+	onRename = () => "",
+	onCopy = () => {},
 }: ISwatch) {
-	const HEX_REGEX = /[^0-9a-fA-f]/g;
 	const [color, setColor] = useState<string>(
 		colorData[swatch] || randomColor(),
 	);
 	const [colorName, setColorName] = useState(swatch);
 	const [isLocked, setIsLocked] = useState(false);
-	const swatchNameRef = useRef<HTMLInputElement>()
+	const [showPicker, setShowPicker] = useState(false);
+	const swatchNameRef = useRef<HTMLInputElement>();
 
 	//    ______ ______ ______ ______ _____ _______
 	//   |  ____|  ____|  ____|  ____/ ____|__   __|
@@ -38,15 +44,13 @@ export default function Swatch({
 	//
 	//
 
+	// === Retrieve Color Info === //
 	useLayoutEffect(() => {
 		get("get-color", {
 			name: colorName,
 		});
 	}, []);
-
-	useEffect(() => {
-		console.log(colorName)
-	}, [colorName])
+	// /== Retrieve Color Info === //
 
 	// === Replace Color Placeholder === //
 	const inputRef = useRef<HTMLInputElement>();
@@ -58,16 +62,17 @@ export default function Swatch({
 	}, [color]);
 	// /== Replace Color Placeholder === //
 
+	// === Set Color On Load === //
 	useEffect(() => {
 		let data = colorData[swatch];
 		if (data) {
 			setIsLocked(true);
 			setColor(data);
-		} else {
-			setColor(randomColor());
 		}
 	}, [colorData]);
+	// /== Set Color On Load === //
 
+	// === Post Color Value On Lock === //
 	useEffect(() => {
 		if (isLocked) {
 			post("set-color", {
@@ -76,12 +81,12 @@ export default function Swatch({
 			});
 		} else {
 			post("set-color", {
-				name:  swatchNameRef.current.value || colorName,
+				name: swatchNameRef.current.value || colorName,
 				color: null,
 			});
 		}
-		console.log(`${swatchNameRef.current.value || colorName} is now ${isLocked ? 'locked' : 'unlocked'}!`)
 	}, [isLocked]);
+	// /== Post Color Value On Lock === //
 
 	//    _    _          _   _ _____  _      ______ _____   _____
 	//   | |  | |   /\   | \ | |  __ \| |    |  ____|  __ \ / ____|
@@ -92,40 +97,56 @@ export default function Swatch({
 	//
 	//
 
+	/// Selects the entire input on focus
 	function handleFocus(e: React.FocusEvent<HTMLInputElement>) {
-		e.target.select();
+		e.currentTarget.select();
 	}
 
+	/// Attempts input validation on blur
 	function handleBlur(e: React.FocusEvent<HTMLInputElement>) {
 		handleSubmit(e.currentTarget);
 	}
 
-	function handleSubmit(elt: HTMLInputElement) {
-		let val = elt.value.trim();
-		if (val.replace(HEX_REGEX, "").length === 0) {
-			elt.value = color;
-			return;
-		}
-
-		val = makeHex(val);
-
-		elt.value = val;
-		setColor(val);
-	}
-
+	/// Attempts input validation on 'Enter'
 	function handleKey(e: React.KeyboardEvent<HTMLInputElement>) {
 		if (e.key === "Enter") {
 			handleSubmit(e.currentTarget);
 		}
 	}
 
-	function handleRename(elt: HTMLInputElement) {
-		if(elt.value === colorName) {return;}
-		let name = onRename(elt.value, colorName) || colorName
-		elt.value = name
-		setColorName(name)
+	/// Validate the input as a hex color code
+	function handleSubmit(elt: HTMLInputElement) {
+		let val = elt.value.trim();
+
+		// === Cannot Be Empty === //
+		if (val.replace(HEX_REGEX, "").length === 0) {
+			elt.value = color;
+			return;
+		}
+
+		// === Sanitize Input === //
+		val = makeHex(val);
+		elt.value = val;
+
+		// === Set Color === //
+		setColor(val);
 	}
 
+	/// Handles swatch renaming
+	function handleRename(elt: HTMLInputElement) {
+		if (elt.value === colorName) {
+			return;
+		}
+		let name = onRename(elt.value, colorName) || colorName;
+		elt.value = name;
+		setColorName(name);
+	}
+
+	/**
+	 * Copy the given hex color to the clipboard
+	 *
+	 * @param txt The hex color
+	 */
 	function copyCode(txt: string) {
 		let txtElt = document.createElement("textarea");
 		txtElt.value = txt;
@@ -133,124 +154,17 @@ export default function Swatch({
 		txtElt.select();
 		document.execCommand("copy");
 		txtElt.remove();
+		onCopy && onCopy();
 	}
 
-	//     _____ ______ _______  _______   ____   _____ _______
-	//    / ____|  ____|__   __|/ /  __ \ / __ \ / ____|__   __|
-	//   | |  __| |__     | |  / /| |__) | |  | | (___    | |
-	//   | | |_ |  __|    | | / / |  ___/| |  | |\___ \   | |
-	//   | |__| | |____   | |/ /  | |    | |__| |____) |  | |
-	//    \_____|______|  |_/_/   |_|     \____/|_____/   |_|
+	//    _____  ______ _   _ ______ _____
+	//   |  __ \|  ____| \ | |  ____|  __ \
+	//   | |__) | |__  |  \| | |__  | |__) |
+	//   |  _  /|  __| | . ` |  __| |  _  /
+	//   | | \ \| |____| |\  | |____| | \ \
+	//   |_|  \_\______|_| \_|______|_|  \_\
 	//
 	//
-
-	function post(type: string, data: object) {
-		parent.postMessage(
-			{
-				pluginMessage: {
-					type: type,
-					data: data,
-				},
-			},
-			"*",
-		);
-	}
-	function get(type: string, data: object) {
-		parent.postMessage(
-			{
-				pluginMessage: {
-					type: type,
-					data: data,
-				},
-			},
-			"*",
-		);
-	}
-
-	//    _    _ _______ _____ _
-	//   | |  | |__   __|_   _| |
-	//   | |  | |  | |    | | | |
-	//   | |  | |  | |    | | | |
-	//   | |__| |  | |   _| |_| |____
-	//    \____/   |_|  |_____|______|
-	//
-	//
-
-	/**
-	 * Darken the luminosity of the given color
-	 *
-	 * @param hex The hex string (i.e. '#ff00cc')
-	 * @param amount The amount to adjust by
-	 */
-	function darken(hex: string, amount: number = 0.1): string {
-		return adjustColor(hex, -amount);
-	}
-
-	/**
-	 * Lighten the luminosity of the given color
-	 *
-	 * @param hex The hex string (i.e. '#ff00cc')
-	 * @param amount The amount to adjust by
-	 */
-	function lighten(hex: string, amount: number = 0.1): string {
-		return adjustColor(hex, amount);
-	}
-
-	/**
-	 * Adjust the luminosity of the given color
-	 *
-	 * @param hex The hex string (i.e. '#ff00cc')
-	 * @param amount The amount to adjust by
-	 */
-	function adjustColor(hex: string, amount: number = 0.1): string {
-		let color = Color(hex);
-		if (amount > 0) {
-			color = color.lighten(Math.abs(amount));
-		} else {
-			color = color.darken(Math.abs(amount));
-		}
-		return color.hex();
-	}
-
-	function makeHex(val: string): string {
-		// === Copy === //
-		let _val = `${val}`;
-
-		// === Remove Extras === //
-		_val = _val.replace(HEX_REGEX, "");
-
-		// === Trim Whitespace === //
-		_val = _val.trim();
-
-		// === Trim Chars === //
-		_val = _val.substr(0, 6);
-
-		// === Min Content === //
-		if (_val.length === 0) {
-			_val = "f";
-		}
-
-		// === Fill === //
-		if (_val.length <= 2) {
-			_val = _val.repeat(6 / _val.length);
-		} else if (_val.length < 6) {
-			_val = _val[0].repeat(2) + _val[1].repeat(2) + _val[2].repeat(2);
-		}
-
-		// === Set Hex === //
-		_val = "#" + _val;
-
-		return _val.toUpperCase();
-	}
-
-	function randomColor(): string {
-		let color = Color.rgb(
-			Math.floor(Math.random() * 255),
-			Math.floor(Math.random() * 255),
-			Math.floor(Math.random() * 255),
-		);
-		return color.hex();
-	}
 
 	return (
 		<div>
@@ -260,23 +174,33 @@ export default function Swatch({
 				disabled={isLocked}
 				type="text"
 				defaultValue={colorName}
-				onBlur={e => {handleRename(e.target)}}
-				onKeyDown={e => e.key === 'Enter' && handleRename(e.currentTarget)}
+				onBlur={(e) => {
+					handleRename(e.target);
+				}}
+				onKeyDown={(e) =>
+					e.key === "Enter" && handleRename(e.currentTarget)
+				}
 			/>
 			<div className="swatch">
 				<div
 					className="swatch-color swatch-color__dark"
-					onClick={(_e) => copyCode(darken(color, shift))}
+					onClick={(_e) => {
+						copyCode(darken(color, shift));
+					}}
 					style={{ backgroundColor: darken(color, shift) }}
 				/>
 				<div
 					className="swatch-color swatch-color__default"
-					onClick={(_e) => copyCode(color)}
+					onClick={(_e) => {
+						copyCode(color);
+					}}
 					style={{ backgroundColor: color }}
 				/>
 				<div
 					className="swatch-color swatch-color__light"
-					onClick={(_e) => copyCode(lighten(color, shift))}
+					onClick={(_e) => {
+						copyCode(lighten(color, shift));
+					}}
 					style={{ backgroundColor: lighten(color, shift) }}
 				/>
 				<div className="swatch-control">
@@ -289,15 +213,38 @@ export default function Swatch({
 						onBlur={handleBlur}
 						onKeyDown={handleKey}
 					/>
-					<button onMouseDown={(_e) => {handleRename(swatchNameRef.current);setIsLocked(!isLocked)}}>
-					<img
-						className="swatch-lock"
-						title={`${!isLocked ? "Save" : "Unsave"} this color`}
-						src={isLocked ? LOCK_CLOSE : LOCK_OPEN}
-					/>
+					<button
+						onMouseDown={(_e) => {
+							setShowPicker(!showPicker);
+						}}>
+						<img
+							className="swatch-picker"
+							title={`Toggle the color picker`}
+							src={PALETTE}
+						/>
+					</button>
+					<button
+						onMouseDown={(_e) => {
+							handleRename(swatchNameRef.current);
+							setIsLocked(!isLocked);
+						}}>
+						<img
+							className="swatch-lock"
+							title={`${
+								!isLocked ? "Save" : "Unsave"
+							} this color`}
+							src={isLocked ? LOCK_CLOSE : LOCK_OPEN}
+						/>
 					</button>
 				</div>
 			</div>
+			{showPicker && (
+				<ChromePicker
+					color={color}
+					onChange={(e) => !isLocked && setColor(e.hex)}
+					disableAlpha={true}
+				/>
+			)}
 		</div>
 	);
 }
